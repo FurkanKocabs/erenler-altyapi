@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erenler Altyapı & Kesinti Takip Haritası | Sakarya</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Üst Başlık ve İstatistik Çubuğu -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-city"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>ERENLER ALTYAPI RADARI</h1>
+                    <span class="subtitle">Sakarya / Erenler Canlı Hizmet & Kesinti Takip Sistemi</span>
+                </div>
+            </div>
+
+            <!-- Hızlı İstatistik Sayaçları -->
+            <div class="header-stats">
+                <div class="stat-pill water" title="SASKİ Aktif Kesintiler">
+                    <i class="fa-solid fa-droplet"></i>
+                    <span class="stat-num" id="stat-water">0</span>
+                    <span class="stat-label">Su Kesintisi</span>
+                </div>
+                <div class="stat-pill electric" title="SEDAŞ Planlı Kesintiler">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span class="stat-num" id="stat-electric">0</span>
+                    <span class="stat-label">Elektrik</span>
+                </div>
+                <div class="stat-pill gas" title="AGDAŞ Şebeke Çalışmaları">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                    <span class="stat-num" id="stat-gas">0</span>
+                    <span class="stat-label">Doğalgaz</span>
+                </div>
+                <div class="stat-pill internet" title="İnternet Kesinti/Kopma">
+                    <i class="fa-solid fa-wifi"></i>
+                    <span class="stat-num" id="stat-internet">0</span>
+                    <span class="stat-label">İnternet</span>
+                </div>
+            </div>
+
+            <!-- Aksiyon Butonları -->
+            <div class="header-actions">
+                <button class="btn btn-notify" id="btn-toggle-notifications" title="Masaüstü / Telefon Bildirimlerini Aç">
+                    <i class="fa-solid fa-bell" id="notify-icon"></i>
+                    <span id="notify-btn-text">Bildirimleri Aç</span>
+                </button>
+                <button class="btn btn-icon" id="btn-toggle-sound" title="Sesli Uyarıyı Aç/Kapat">
+                    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+                </button>
+                <button class="btn btn-primary" id="btn-open-report">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Arıza Bildir</span>
+                </button>
+                <div class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    <span id="live-sync-time">CANLI</span>
+                    <button class="btn-refresh" id="btn-refresh-data" title="Verileri Şimdi Güncelle">
+                        <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ana Gövde: Sol Sidebar (Filtreler & Canlı Akış) + Sağ Harita -->
+        <div class="main-content">
+            <!-- Sol Panel -->
+            <aside class="sidebar">
+                <!-- Arama Kutusu -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="neighborhood-search" placeholder="33 mahalle veya sokak ara... (Örn: Çaybaşı, Dilmen)">
+                </div>
+
+                <!-- 33 Mahalle Hızlı Seçim & Durum Listesi -->
+                <div class="panel-section neighborhood-list-section">
+                    <div class="section-title">
+                        <span>ERENLER MAHALLELERİ (33)</span>
+                        <span class="badge" id="neighborhood-count">33 Bölge</span>
+                    </div>
+                    <div class="neighborhood-chips-container" id="neighborhood-chips-list">
+                        <!-- JS ile 33 mahalle buraya doldurulacak -->
+                    </div>
+                </div>
+
+                <!-- Katman Aç/Kapa Filtreleri -->
+                <div class="panel-section">
+                    <div class="section-title">
+                        <span>ALTYAPI KATMANLARI</span>
+                        <button class="btn-text" id="btn-toggle-all">Tümünü Aç</button>
+                    </div>
+                    <div class="layer-toggles">
+                        <label class="layer-toggle-item active" data-layer="water">
+                            <input type="checkbox" checked id="chk-water">
+                            <span class="custom-toggle water"></span>
+                            <div class="layer-info">
+                                <span class="layer-name"><i class="fa-solid fa-droplet icon-water"></i> Su & Kanalizasyon</span>
+                                <span class="layer-source">SASKİ Şebeke & Depolar</span>
+                            </div>
+                        </label>
+
+                        <label class="layer-toggle-item active" data-layer="electric">
+                            <input type="checkbox" checked id="chk-electric">
+                            <span class="custom-toggle electric"></span>
+                            <div class="layer-info">
+                                <span class="layer-name"><i class="fa-solid fa-bolt icon-electric"></i> Elektrik Şebekesi</span>
+                                <span class="layer-source">SEDAŞ Trafo & Hatlar</span>
+                            </div>
+                        </label>
+
+                        <label class="layer-toggle-item active" data-layer="gas">
+                            <input type="checkbox" checked id="chk-gas">
+                            <span class="custom-toggle gas"></span>
+                            <div class="layer-info">
+                                <span class="layer-name"><i class="fa-solid fa-fire-flame-curved icon-gas"></i> Doğalgaz</span>
+                                <span class="layer-source">AGDAŞ Dağıtım Hatları</span>
+                            </div>
+                        </label>
+
+                        <label class="layer-toggle-item active" data-layer="internet">
+                            <input type="checkbox" checked id="chk-internet">
+                            <span class="custom-toggle internet"></span>
+                            <div class="layer-info">
+                                <span class="layer-name"><i class="fa-solid fa-wifi icon-internet"></i> İnternet & Fiber</span>
+                                <span class="layer-source">Türk Telekom / Superonline</span>
+                            </div>
+                        </label>
+
+                        <label class="layer-toggle-item active" data-layer="works">
+                            <input type="checkbox" checked id="chk-works">
+                            <span class="custom-toggle works"></span>
+                            <div class="layer-info">
+                                <span class="layer-name"><i class="fa-solid fa-person-digging icon-works"></i> AYKOME Altyapı Kazı</span>
+                                <span class="layer-source">Sakarya BŞB Kazı İzinleri</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Canlı Olay / Kesinti Akışı -->
+                <div class="panel-section live-feed-section">
+                    <div class="section-title">
+                        <span>SON OLAY & ARIZA DUYURULARI</span>
+                        <span class="badge" id="feed-count">4 Bildirim</span>
+                    </div>
+                    <div class="events-feed" id="events-feed-list">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+                </div>
+
+                <!-- Bilgi & Resmi Hatlar -->
+                <div class="sidebar-footer">
+                    <div class="official-helplines">
+                        <a href="tel:185" class="helpline-pill" title="SASKİ Arıza İhbar"><i class="fa-solid fa-droplet"></i> ALO 185 SASKİ</a>
+                        <a href="tel:186" class="helpline-pill" title="SEDAŞ Elektrik Arıza"><i class="fa-solid fa-bolt"></i> ALO 186 SEDAŞ</a>
+                        <a href="tel:187" class="helpline-pill" title="AGDAŞ Gaz Acil"><i class="fa-solid fa-fire"></i> ALO 187 AGDAŞ</a>
+                    </div>
+                    <p><i class="fa-solid fa-circle-info"></i> Veriler SASKİ, SEDAŞ, AGDAŞ ve ilçe sakinlerinin anlık bildirimlerinden derlenmektedir.</p>
+                </div>
+            </aside>
+
+            <!-- Harita Alanı -->
+            <main class="map-wrapper">
+                <div id="map"></div>
+
+                <!-- Otomatik Canlı Toast Bildirimleri Konteyneri -->
+                <div class="toast-container" id="toast-container"></div>
+
+                <!-- Harita İçi Hızlı Bilgi Penceresi (Hover veya Click) -->
+                <div class="map-overlay-card" id="neighborhood-details-card" style="display: none;">
+                    <button class="card-close" id="btn-close-card">&times;</button>
+                    <div class="card-header">
+                        <span class="card-badge" id="card-badge">Erenler</span>
+                        <h3 id="card-title">Dilmen Mahallesi</h3>
+                        <p class="card-desc" id="card-desc">Genel altyapı durumu stabil</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="status-grid">
+                            <div class="status-box" id="status-water-box">
+                                <span class="box-icon"><i class="fa-solid fa-droplet"></i></span>
+                                <span class="box-title">Su (SASKİ)</span>
+                                <span class="box-value" id="status-water-val">Normal</span>
+                            </div>
+                            <div class="status-box" id="status-electric-box">
+                                <span class="box-icon"><i class="fa-solid fa-bolt"></i></span>
+                                <span class="box-title">Elektrik (SEDAŞ)</span>
+                                <span class="box-value" id="status-electric-val">Normal</span>
+                            </div>
+                            <div class="status-box" id="status-gas-box">
+                                <span class="box-icon"><i class="fa-solid fa-fire-flame-curved"></i></span>
+                                <span class="box-title">Doğalgaz (AGDAŞ)</span>
+                                <span class="box-value" id="status-gas-val">Normal</span>
+                            </div>
+                            <div class="status-box" id="status-internet-box">
+                                <span class="box-icon"><i class="fa-solid fa-wifi"></i></span>
+                                <span class="box-title">İnternet Altyapısı</span>
+                                <span class="box-value" id="status-internet-val">FTTH Fiber</span>
+                            </div>
+                        </div>
+
+                        <div class="card-details-list" id="card-details-list">
+                            <!-- Aktif uyarı veya notlar -->
+                        </div>
+
+                        <button class="btn btn-block btn-outline" id="btn-report-for-neighborhood">
+                            <i class="fa-solid fa-bullhorn"></i> Bu Mahalle İçin Arıza Bildir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Harita Harita Lejantı (Alt Sağ) -->
+                <div class="map-legend">
+                    <span class="legend-title">GÖSTERGELER</span>
+                    <div class="legend-item"><span class="legend-color normal"></span> Sorunsuz Bölge</div>
+                    <div class="legend-item"><span class="legend-color warning"></span> Bakım / Çalışma Var</div>
+                    <div class="legend-item"><span class="legend-color alert"></span> Aktif Kesinti / Arıza</div>
+                    <div class="legend-item"><span class="legend-marker fiber"></span> Fiber İnternet Omurgası</div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Arıza Bildirim Modalı -->
+    <div class="modal-backdrop" id="report-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-bullhorn"></i> Erenler Altyapı Arıza Bildir</h3>
+                <button class="modal-close" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="report-form">
+                <div class="form-group">
+                    <label>Hangi Mahallede Yaşıyorsunuz?</label>
+                    <select id="report-neighborhood" required>
+                        <option value="">Mahalle Seçin (33 Mahalle)...</option>
+                        <option value="Alancuma">Alancuma Mahallesi</option>
+                        <option value="Bağlar">Bağlar Mahallesi</option>
+                        <option value="Bekirpaşa">Bekirpaşa Mahallesi</option>
+                        <option value="Büyükesence">Büyükesence Mahallesi</option>
+                        <option value="Çaybaşıyeniköy">Çaybaşıyeniköy Mahallesi</option>
+                        <option value="Çaykışla">Çaykışla Mahallesi</option>
+                        <option value="Değirmendere">Değirmendere Mahallesi</option>
+                        <option value="Dilmen">Dilmen Mahallesi</option>
+                        <option value="Ekinli">Ekinli Mahallesi</option>
+                        <option value="Emirler">Emirler Mahallesi</option>
+                        <option value="Epçeller">Epçeller Mahallesi</option>
+                        <option value="Erenler Merkez">Erenler (Merkez) Mahallesi</option>
+                        <option value="Hacıoğlu">Hacıoğlu Mahallesi</option>
+                        <option value="Hasanbey">Hasanbey Mahallesi</option>
+                        <option value="Horozlar">Horozlar Mahallesi</option>
+                        <option value="Hürriyet">Hürriyet Mahallesi</option>
+                        <option value="Kamışlı">Kamışlı Mahallesi</option>
+                        <option value="Kayalarmemduhiye">Kayalarmemduhiye Mahallesi</option>
+                        <option value="Kayalarreşitbey">Kayalarreşitbey Mahallesi</option>
+                        <option value="Kozluk">Kozluk Mahallesi</option>
+                        <option value="Küçükesence">Küçükesence Mahallesi</option>
+                        <option value="Küpçüler">Küpçüler Mahallesi</option>
+                        <option value="Nakışlar">Nakışlar Mahallesi</option>
+                        <option value="Pirahmetler">Pirahmetler Mahallesi</option>
+                        <option value="Sarıcalar">Sarıcalar Mahallesi</option>
+                        <option value="Şeyhköy">Şeyhköy Mahallesi</option>
+                        <option value="Şükriye">Şükriye Mahallesi</option>
+                        <option value="Tabakhane">Tabakhane Mahallesi</option>
+                        <option value="Tepe">Tepe Mahallesi</option>
+                        <option value="Tuapsalar">Tuapsalar Mahallesi</option>
+                        <option value="Yazılı">Yazılı Mahallesi</option>
+                        <option value="Yeni Mahalle">Yeni Mahalle</option>
+                        <option value="Yeşiltepe">Yeşiltepe Mahallesi</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sorun Yaşadığınız Hizmet:</label>
+                    <div class="service-selector">
+                        <label class="radio-card">
+                            <input type="radio" name="report_service" value="water" checked>
+                            <span class="radio-content"><i class="fa-solid fa-droplet"></i> Su</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="report_service" value="electric">
+                            <span class="radio-content"><i class="fa-solid fa-bolt"></i> Elektrik</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="report_service" value="gas">
+                            <span class="radio-content"><i class="fa-solid fa-fire"></i> Doğalgaz</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="report_service" value="internet">
+                            <span class="radio-content"><i class="fa-solid fa-wifi"></i> İnternet</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Cadde / Sokak ve Detay:</label>
+                    <textarea id="report-detail" rows="3" placeholder="Örnek: Sakarbaba Caddesi üzerinde internet tamamen kesildi, modem kırmızı yanıyor." required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">İptal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Bildirimi Haritaya Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="app.js"></script>
+</body>
+</html>
