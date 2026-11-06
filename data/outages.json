@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-11-06 12:00",
-  "last_check_status": "Tamamlandı",
+  "last_updated": "2026-11-06 14:57",
+  "last_check_status": "Başarılı",
   "district": "Erenler",
   "province": "Sakarya",
   "summary": {
@@ -15,19 +15,19 @@
       "name": "SASKİ Sakarya Su ve Kanalizasyon İdaresi",
       "status": "Normal",
       "active_outages": 0,
-      "message": "Erenler ilçesi ana isale hatlarında aktif planlı bir kesinti bildirilmemiştir."
+      "message": "Erenler ana hatlarında aktif planlı bir su kesintisi bulunmuyor."
     },
     "sedas": {
       "name": "SEDAŞ Sakarya Elektrik Dağıtım A.Ş.",
       "status": "Normal",
       "active_outages": 0,
-      "message": "Erenler fiderlerinde elektrik iletimi kesintisizdir."
+      "message": "Erenler trafo fiderlerinde elektrik iletimi normaldir."
     },
     "agdas": {
       "name": "AGDAŞ Adapazarı Gaz Dağıtım A.Ş.",
       "status": "Normal",
       "active_outages": 0,
-      "message": "Erenler doğalgaz şebekesinde basınç normal ve gaz arzı aktiftir."
+      "message": "Erenler doğalgaz şebekesinde gaz arzı kesintisizdir."
     }
   },
   "active_events": [],
