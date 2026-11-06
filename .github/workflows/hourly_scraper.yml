@@ -1,0 +1,34 @@
+name: Erenler Saatlik Kesinti Tarama Botu
+
+on:
+  schedule:
+    # Her saat başı otomatik çalışır (00:00, 01:00, 02:00 ...)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # Elle test çalıştırma butonu
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Depoyu Klonla
+        uses: actions/checkout@v4
+
+      - name: Python Ortamını Kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: SASKİ, SEDAŞ ve AGDAŞ Taramasını Başlat
+        run: |
+          python scraper.py
+
+      - name: Güncel Kesinti Verilerini GitHub'a Kaydet
+        run: |
+          git config --global user.name "Erenler-Altyapi-Bot"
+          git config --global user.email "bot@erenler-altyapi.local"
+          git add data/outages.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Saatlik Otomatik Kesinti Güncellemesi" && git push)
